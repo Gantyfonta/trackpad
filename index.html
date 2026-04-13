@@ -1,51 +1,122 @@
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Remote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Prevents all scrolling and bouncing on mobile */
+        html, body { 
+            position: fixed; 
+            overflow: hidden; 
+            width: 100%; 
+            height: 100%; 
+            margin: 0;
+            padding: 0;
+            touch-action: none;
+        }
+        .pixel-border {
+            box-shadow: 
+                0 4px 0 0 #18181b,
+                0 -4px 0 0 #18181b,
+                4px 0 0 0 #18181b,
+                -4px 0 0 0 #18181b;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 flex flex-col items-center justify-between p-6 font-mono">
 
-    // 1. You MUST initialize the app here so the website knows where to send data
-    const firebaseConfig = {
-        apiKey: "AIzaSyBHFMX973TNhYWCTdxyJAS91LUr9XEcVZs",
-        authDomain: "checkboxes-ad47a.firebaseapp.com",
-        databaseURL: "https://checkboxes-ad47a-default-rtdb.firebaseio.com",
-        projectId: "checkboxes-ad47a",
-        storageBucket: "checkboxes-ad47a.firebasestorage.app",
-        messagingSenderId: "506407575408",
-        appId: "1:506407575408:web:18815c22446499cdb979b5"
-    };
+    <div class="w-full flex justify-between text-[10px] text-cyan-500 uppercase tracking-tighter">
+        <span>Link: Active</span>
+        <span id="coord-display">X: 0.00 Y: 0.00</span>
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const mouseRef = ref(db, 'remote_mouse');
-
-    const trackpad = document.getElementById('trackpad');
-    const coordDisplay = document.getElementById('coord-display');
-
-    // 2. Movement Logic
-    trackpad.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const rect = trackpad.getBoundingClientRect();
+    <div id="trackpad" class="relative w-full h-[60vh] bg-zinc-900 pixel-border rounded-sm flex items-center justify-center touch-none overflow-hidden group active:bg-zinc-800 transition-colors">
+        <div class="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
         
-        const x = (touch.clientX - rect.left) / rect.width;
-        const y = (touch.clientY - rect.top) / rect.height;
+        <p class="text-zinc-700 text-xs text-center uppercase">Move Finger to Control<br>Tap to Click</p>
+    </div>
 
-        // Visual feedback on phone
-        coordDisplay.innerText = `X: ${x.toFixed(2)} Y: ${y.toFixed(2)}`;
+    <button id="clickBtn" class="w-full py-8 bg-cyan-700 text-cyan-100 font-bold pixel-border active:translate-y-1 active:bg-cyan-600 transition-all uppercase tracking-widest">
+        Main Trigger
+    </button>
 
-        // Send data to Firebase
-        update(mouseRef, {
-            x: Math.max(0, Math.min(1, x)),
-            y: Math.max(0, Math.min(1, y)),
-            lastUpdate: Date.now()
-        });
-    }, { passive: false });
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // 3. Click Logic
-    const sendClick = () => {
-        update(mouseRef, { click: true });
-        setTimeout(() => update(mouseRef, { click: false }), 100);
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHFMX973TNhYWCTdxyJAS91LUr9XEcVZs",
+            authDomain: "checkboxes-ad47a.firebaseapp.com",
+            databaseURL: "https://checkboxes-ad47a-default-rtdb.firebaseio.com",
+            projectId: "checkboxes-ad47a",
+            storageBucket: "checkboxes-ad47a.firebasestorage.app",
+            messagingSenderId: "506407575408",
+            appId: "1:506407575408:web:18815c22446499cdb979b5"
+        };
 
-    trackpad.addEventListener('touchstart', sendClick);
-    document.getElementById('clickBtn').addEventListener('click', sendClick);
-</script>
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const mouseRef = ref(db, 'remote_mouse');
+
+        // Main function to run after HTML is ready
+        function initRemote() {
+            const trackpad = document.getElementById('trackpad');
+            const coordDisplay = document.getElementById('coord-display');
+            const clickBtn = document.getElementById('clickBtn');
+
+            if (!trackpad) return;
+
+            // Movement Listener
+            trackpad.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = trackpad.getBoundingClientRect();
+
+                // Calculate normalized coordinates (0 to 1)
+                const x = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                const y = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+
+                // Update text on phone screen
+                if (coordDisplay) {
+                    coordDisplay.innerText = `X: ${x.toFixed(2)} Y: ${y.toFixed(2)}`;
+                }
+
+                // Send to Firebase
+                update(mouseRef, { x, y, lastUpdate: Date.now() });
+            }, { passive: false });
+
+            // Click Trigger Function
+            const sendClick = () => {
+                update(mouseRef, { click: true });
+                // Reset click state after 100ms
+                setTimeout(() => update(mouseRef, { click: false }), 100);
+            };
+
+            // Register click/tap events
+            trackpad.addEventListener('touchstart', (e) => {
+                // We don't prevent default here so clicks still feel responsive
+                sendClick();
+            });
+
+            if (clickBtn) {
+                clickBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    sendClick();
+                });
+            }
+
+            console.log("Remote ready and connected to checkboxes-ad47a!");
+        }
+
+        // Run when page is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initRemote);
+        } else {
+            initRemote();
+        }
+    </script>
+</body>
+</html>
