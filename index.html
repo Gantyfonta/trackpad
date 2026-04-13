@@ -3,23 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Remote Mouse Controller</title>
+    <title>Retro Remote</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database-compat.js"></script>
+    <style>
+        /* Prevents all scrolling and bouncing on mobile */
+        html, body { 
+            position: fixed; 
+            overflow: hidden; 
+            width: 100%; 
+            height: 100%; 
+        }
+        .pixel-border {
+            box-shadow: 
+                0 4px 0 0 #18181b,
+                0 -4px 0 0 #18181b,
+                4px 0 0 0 #18181b,
+                -4px 0 0 0 #18181b;
+        }
+    </style>
 </head>
-<body class="bg-zinc-900 h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 select-none">
+<body class="bg-zinc-950 flex flex-col items-center justify-between p-6 font-mono">
 
-    <h1 class="text-zinc-500 mb-4 font-mono text-sm uppercase tracking-widest">Touchpad Mode</h1>
-
-    <div id="trackpad" class="w-full h-3/4 bg-zinc-800 border-2 border-zinc-700 rounded-3xl shadow-2xl active:border-cyan-500 transition-colors touch-none flex items-center justify-center">
-        <p class="text-zinc-600 pointer-events-none">Slide to move • Tap to click</p>
+    <div class="w-full flex justify-between text-[10px] text-cyan-500 uppercase tracking-tighter">
+        <span>Link: Active</span>
+        <span id="coord-display">X: 0.00 Y: 0.00</span>
     </div>
 
-    <button id="clickBtn" class="mt-8 px-12 py-4 bg-cyan-600 text-white rounded-full font-bold active:scale-95 transition-transform">
-        LEFT CLICK
+    <div id="trackpad" class="relative w-full h-[60vh] bg-zinc-900 pixel-border rounded-sm flex items-center justify-center touch-none overflow-hidden group active:bg-zinc-800 transition-colors">
+        <div class="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
+        
+        <p class="text-zinc-700 text-xs text-center uppercase">Move Finger to Control<br>Tap to Click</p>
+    </div>
+
+    <button id="clickBtn" class="w-full py-8 bg-cyan-700 text-cyan-100 font-bold pixel-border active:translate-y-1 active:bg-cyan-600 transition-all uppercase tracking-widest">
+        Main Trigger
     </button>
 
-    <script src="app.js"></script>
-</body>
-</html>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHFMX973TNhYWCTdxyJAS91LUr9XEcVZs",
+            authDomain: "checkboxes-ad47a.firebaseapp.com",
+            databaseURL: "https://checkboxes-ad47a-default-rtdb.firebaseio.com",
+            projectId: "checkboxes-ad47a",
+            storageBucket: "checkboxes-ad47a.firebasestorage.app",
+            messagingSenderId: "506407575408",
+            appId: "1:506407575408:web:18815c22446499cdb979b5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const mouseRef = ref(db, 'remote_mouse');
+        
+        const trackpad = document.getElementById('trackpad');
+        const coordDisplay = document.getElementById('coord-display');
+
+        // Capture movement
+        trackpad.addEventListener('touchmove', (e) => {
+            e.preventDefault();
