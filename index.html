@@ -6,7 +6,6 @@
     <title>Retro Remote</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Prevents all scrolling and bouncing on mobile */
         html, body { 
             position: fixed; 
             overflow: hidden; 
@@ -17,11 +16,7 @@
             touch-action: none;
         }
         .pixel-border {
-            box-shadow: 
-                0 4px 0 0 #18181b,
-                0 -4px 0 0 #18181b,
-                4px 0 0 0 #18181b,
-                -4px 0 0 0 #18181b;
+            box-shadow: 0 4px 0 0 #18181b, 0 -4px 0 0 #18181b, 4px 0 0 0 #18181b, -4px 0 0 0 #18181b;
         }
     </style>
 </head>
@@ -32,85 +27,74 @@
         <span id="coord-display">X: 0.00 Y: 0.00</span>
     </div>
 
-    <div id="trackpad" class="relative w-full h-[60vh] bg-zinc-900 pixel-border rounded-sm flex items-center justify-center touch-none overflow-hidden group active:bg-zinc-800 transition-colors">
+    <div id="trackpad" class="relative w-full h-[60vh] bg-zinc-900 pixel-border rounded-sm flex items-center justify-center touch-none overflow-hidden active:bg-zinc-800 transition-colors">
         <div class="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
-        
-        <p class="text-zinc-700 text-xs text-center uppercase">Move Finger to Control<br>Tap to Click</p>
+        <p class="text-zinc-700 text-xs text-center uppercase">Movement Only</p>
     </div>
 
     <button id="clickBtn" class="w-full py-8 bg-cyan-700 text-cyan-100 font-bold pixel-border active:translate-y-1 active:bg-cyan-600 transition-all uppercase tracking-widest">
         Main Trigger
     </button>
 
-   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBHFMX973TNhYWCTdxyJAS91LUr9XEcVZs",
-        authDomain: "checkboxes-ad47a.firebaseapp.com",
-        databaseURL: "https://checkboxes-ad47a-default-rtdb.firebaseio.com",
-        projectId: "checkboxes-ad47a",
-        storageBucket: "checkboxes-ad47a.firebasestorage.app",
-        messagingSenderId: "506407575408",
-        appId: "1:506407575408:web:18815c22446499cdb979b5"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const mouseRef = ref(db, 'remote_mouse');
-
-    function initRemote() {
-        const trackpad = document.getElementById('trackpad');
-        const coordDisplay = document.getElementById('coord-display');
-        const clickBtn = document.getElementById('clickBtn');
-
-        if (!trackpad) return;
-
-        // --- 1. MOVEMENT ONLY (Trackpad) ---
-        trackpad.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = trackpad.getBoundingClientRect();
-
-            const x = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            const y = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
-
-            if (coordDisplay) {
-                coordDisplay.innerText = `X: ${x.toFixed(2)} Y: ${y.toFixed(2)}`;
-            }
-
-            // Only update coordinates
-            update(mouseRef, { x, y, lastUpdate: Date.now() });
-        }, { passive: false });
-
-        // --- 2. CLICK ONLY (Button) ---
-        const triggerClick = (e) => {
-            if (e) e.preventDefault();
-            
-            // Send click: true
-            update(mouseRef, { click: true });
-            
-            // Turn it off after 100ms so it doesn't stay stuck on "down"
-            setTimeout(() => {
-                update(mouseRef, { click: false });
-            }, 100);
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHFMX973TNhYWCTdxyJAS91LUr9XEcVZs",
+            authDomain: "checkboxes-ad47a.firebaseapp.com",
+            databaseURL: "https://checkboxes-ad47a-default-rtdb.firebaseio.com",
+            projectId: "checkboxes-ad47a",
+            storageBucket: "checkboxes-ad47a.firebasestorage.app",
+            messagingSenderId: "506407575408",
+            appId: "1:506407575408:web:18815c22446499cdb979b5"
         };
 
-        if (clickBtn) {
-            // Using both touchstart and mousedown covers all mobile/desktop browsers
-            clickBtn.addEventListener('touchstart', triggerClick);
-            clickBtn.addEventListener('mousedown', triggerClick);
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const mouseRef = ref(db, 'remote_mouse');
+
+        function initRemote() {
+            const trackpad = document.getElementById('trackpad');
+            const coordDisplay = document.getElementById('coord-display');
+            const clickBtn = document.getElementById('clickBtn');
+
+            // 1. BLOCK TRACKPAD CLICKS
+            // This stops the 'tap' from becoming a click signal
+            trackpad.addEventListener('touchstart', (e) => {
+                e.preventDefault(); 
+            }, { passive: false });
+
+            // 2. MOVEMENT ONLY
+            trackpad.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = trackpad.getBoundingClientRect();
+
+                const x = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                const y = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+
+                coordDisplay.innerText = `X: ${x.toFixed(2)} Y: ${y.toFixed(2)}`;
+
+                update(mouseRef, { x, y, click: false });
+            }, { passive: false });
+
+            // 3. BUTTON ONLY CLICKS
+            const sendClick = (e) => {
+                e.preventDefault();
+                update(mouseRef, { click: true });
+                setTimeout(() => update(mouseRef, { click: false }), 100);
+            };
+
+            clickBtn.addEventListener('touchstart', sendClick);
+            clickBtn.addEventListener('mousedown', sendClick);
         }
 
-        console.log("Remote updated: Trackpad moves, Button clicks.");
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initRemote);
-    } else {
-        initRemote();
-    }
-</script>
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initRemote);
+        } else {
+            initRemote();
+        }
+    </script>
 </body>
 </html>
