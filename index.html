@@ -40,26 +40,21 @@
     </button>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        // Inside your Website's <script type="module">
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBHFMX973TNhYWCTdxyJAS91LUr9XEcVZs",
-            authDomain: "checkboxes-ad47a.firebaseapp.com",
-            databaseURL: "https://checkboxes-ad47a-default-rtdb.firebaseio.com",
-            projectId: "checkboxes-ad47a",
-            storageBucket: "checkboxes-ad47a.firebasestorage.app",
-            messagingSenderId: "506407575408",
-            appId: "1:506407575408:web:18815c22446499cdb979b5"
-        };
+const db = getDatabase();
+const mouseRef = ref(db, 'remote_mouse'); // This creates the 'remote_mouse' folder
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const mouseRef = ref(db, 'remote_mouse');
-        
-        const trackpad = document.getElementById('trackpad');
-        const coordDisplay = document.getElementById('coord-display');
-
-        // Capture movement
-        trackpad.addEventListener('touchmove', (e) => {
-            e.preventDefault();
+trackpad.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = trackpad.getBoundingClientRect();
+    
+    // Send data to Firebase
+    set(mouseRef, {
+        x: (touch.clientX - rect.left) / rect.width,
+        y: (touch.clientY - rect.top) / rect.height,
+        lastUpdate: Date.now()
+    });
+}, { passive: false });
